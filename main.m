@@ -23,7 +23,7 @@ w    = @(u) 1;
 % d'età
 U0 = zeros(max(N_class),numel(N_class));
 for N_c = 1:numel(N_class)
-   U0(1:N_class(N_c),N_c) = -10+9.01*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
+    U0(1:N_class(N_c),N_c) = -10+9.01*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
 end
 
 % parametri
@@ -31,20 +31,22 @@ beta   = 8.45e-9;
 gamma  = 0.24;
 for t = 1:100
     for N_c = 1:numel(N_class)
-        % primo passo
-        [f_new_tilda,U,n,edges] = MonteCarlo(U0(1:N_class(N_c),N_c),beta,gamma,N_class(N_c),M(:,N_c),U0);
-        % secondo passo
-        f_new = PassoUpwind(L,n,Tmax,CFL,w,f_new_tilda);
-        % aggiornamento
-        U0(1:N_class(N_c),N_c) = U;
+        % PRIMO PASSO
+        [f_new_tilda,U,num_bins,edges] = MonteCarlo(U0,beta,gamma,N_class(N_c),N_c,M(:,N_c));
+        % SECONDO PASSO
+        f_new = PassoUpwind(L,num_bins,Tmax,CFL,w,f_new_tilda);
+        % AGGIORNAMENTO
+        % [c,e] = histcounts(f_new,num_bins);
+        U0(1:N_class(N_c),N_c) = U; 
+        % CALCOLO S, I, R
         S = sum(f_new(1:find(edges==-1)));
         if isempty(find(edges==1, 1))
             I = sum(f_new(find(edges==-1):end));
             R = 0;
         else
             r = find(edges==1);
-            if r>n
-                r = n;
+            if r>num_bins
+                r = num_bins;
             end
             I = sum(f_new(find(edges==-1):r));
             R = sum(f_new(r:end));
@@ -53,7 +55,7 @@ for t = 1:100
 
         fprintf('Class %d\n', N_c);
         disp(rows2vars(T));
- 
+
         % plot della distribuzione della classe N_c
         plot(edges(1:end-1),f_new)
         legend(sprintf('Distribution plot of class %d', N_c),'Location','best')
