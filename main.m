@@ -16,7 +16,7 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
 L    = 100;
 Nu   = 1000;                            % Numero di punti spaziali
 Tmax = 50;                            % Tempo massimo di simulazione
-maxit = 50;
+Tfin = 50;
 CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewyc
 w    = 1;
 % condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
@@ -30,12 +30,13 @@ end
 beta   = 1.6e-8;
 gamma  = 0.24;
 lambda = 0.1;
-data   = cell(maxit,1); 
+t_lock = 14;
+data   = cell(Tfin,1); 
 hbar   = waitbar(0,'','Name','Time iterations');
 flag   = 0;
-for t = 1:maxit
-    if (t>10)&&(~flag)
-        M(1:3,1:3) = M(1:3,1:3)./lambda;
+for t = 1:Tfin
+    if (t>t_lock)&&(~flag)
+        M(1:6,1:6) = M(1:6,1:6)./lambda;
         flag       = 1;
     end
     for N_c = 1:numel(N_class)
@@ -78,8 +79,11 @@ for t = 1:maxit
 end
 close(hbar)
 % check popolazione conservata
-Tot = zeros(numel(N_class),1);
+Tot       = zeros(numel(N_class),1);
+confirmed = zeros(numel(N_class),1);
 for t=1:numel(N_class)
     Tot(t) = sum(data{end,t}.Susceptible+data{end,t}.Infected+data{end,t}.Removed);
+    confirmed(t) = sum(data{end,t}.Infected+data{end,t}.Removed);
 end
+confirmed = sum(confirmed);
 err = abs(N_class-Tot)./N_class*100
