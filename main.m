@@ -36,7 +36,7 @@ hbar   = waitbar(0,'','Name','Time iterations');
 flag   = 0;
 for t = 1:Tfin
     if (t>t_lock)&&(~flag)
-        M(1:6,1:6) = M(1:6,1:6)./lambda;
+        M(1:6,1:6) = M(1:6,1:6).*lambda;
         flag       = 1;
     end
     for N_c = 1:numel(N_class)
