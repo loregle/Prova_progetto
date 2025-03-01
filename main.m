@@ -16,7 +16,7 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
 L    = 100;
 Nu   = 1000;                            % Numero di punti spaziali
 Tmax = 50;                            % Tempo massimo di simulazione
-maxit = 10;
+maxit = 50;
 CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewyc
 w    = 1;
 % condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
@@ -29,10 +29,15 @@ end
 % parametri
 beta   = 1.6e-8;
 gamma  = 0.24;
+lambda = 0.1;
 data   = cell(maxit,1); 
-Tot    = zeros(maxit,1);
 hbar   = waitbar(0,'','Name','Time iterations');
+flag   = 0;
 for t = 1:maxit
+    if (t>10)&&(~flag)
+        M(1:3,1:3) = M(1:3,1:3)./lambda;
+        flag       = 1;
+    end
     for N_c = 1:numel(N_class)
         waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d.\n $N_c$ = %d / %d',t,N_c,numel(N_class)));
         % PRIMO PASSO
@@ -67,10 +72,14 @@ for t = 1:maxit
         % plot della distribuzione della classe N_c
         % plot(edges(1:end-1),f_new)
         % legend(sprintf('Distribution plot of class %d', N_c),'Location','best')
-        Tot(t) = sum(data{t,N_c}.Susceptible+data{t,N_c}.Infected+data{t,N_c}.Removed)
+        
     end
     % pause
 end
 close(hbar)
-% check
-[N_class S]
+% check popolazione conservata
+Tot = zeros(numel(N_class),1);
+for t=1:numel(N_class)
+    Tot(t) = sum(data{end,t}.Susceptible+data{end,t}.Infected+data{end,t}.Removed);
+end
+err = abs(N_class-Tot)./N_class*100
