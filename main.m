@@ -1,8 +1,7 @@
 clearvars; close all;clc
-% particelle per MonteCarlo
 format short;
-N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122]; %numero popolazione per ogni fascia d'età
-%N = sum(N_class);
+% numero popolazione per ogni fascia d'età
+N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122];
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
     4.8 42.4 6.4 5.4 7.5 5.0 1.8 1.7 1.7;
@@ -14,29 +13,38 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
     1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2;
     1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2];
 
-L = 10;
+L    = 100;
 Nu   = 1000;                            % Numero di punti spaziali
 Tmax = 50;                            % Tempo massimo di simulazione
+maxit = 10;
 CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewyc
-w    = @(u) 1;
+w    = 1;
 % condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
 % d'età
 U0 = nan(max(N_class),numel(N_class));
 for N_c = 1:numel(N_class)
-    U0(1:N_class(N_c),N_c) = -10+9.01*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
+    U0(1:N_class(N_c),N_c) = -L+(L-.99)*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
 end
 
 % parametri
-beta   = 8.45e-9;
+beta   = 1.6e-8;
 gamma  = 0.24;
-for t = 1:2
+data   = cell(maxit,1); 
+Tot    = zeros(maxit,1);
+hbar   = waitbar(0,'','Name','Time iterations');
+for t = 1:maxit
     for N_c = 1:numel(N_class)
+        waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d.\n $N_c$ = %d / %d',t,N_c,numel(N_class)));
         % PRIMO PASSO
-        [f_new_tilda,U,num_bins,edges] = MonteCarlo(U0,beta,gamma,N_c,M(:,N_c));
+        [f_new_tilda,U,num_bins,edges] = MonteCarlo(U0,beta,gamma,N_c,M(:,N_c));close all
         % SECONDO PASSO
         f_new = PassoUpwind(L,num_bins,Tmax,CFL,w,f_new_tilda);
         % AGGIORNAMENTO
-        % [c,e] = histcounts(f_new,num_bins);
+        for c = 1:numel(U)
+            if U(c)>-1
+                U(c) = U(c)+w;
+            end
+        end
         U0(1:N_class(N_c),N_c) = U; 
         % CALCOLO S, I, R
         S = sum(f_new(1:find(edges==-1)));
@@ -51,14 +59,18 @@ for t = 1:2
             I = sum(f_new(find(edges==-1):r));
             R = sum(f_new(r:end));
         end
-        T = table(t, S, I, R, 'RowNames', {'Value'}, 'VariableNames', {'Time_Step', 'Susceptible', 'Infected', 'Removed'});
-
-        fprintf('Class %d\n', N_c);
-        disp(rows2vars(T));
+        T           = table(t, S, I, R, 'RowNames', {'Value'},...
+                       'VariableNames', {'Time Step', 'Susceptible',...
+                       'Infected', 'Removed'});
+        data{t,N_c} = T; % time step sulle righe, classi sulle colonne
 
         % plot della distribuzione della classe N_c
-        plot(edges(1:end-1),f_new)
-        legend(sprintf('Distribution plot of class %d', N_c),'Location','best')
+        % plot(edges(1:end-1),f_new)
+        % legend(sprintf('Distribution plot of class %d', N_c),'Location','best')
+        Tot(t) = sum(data{t,N_c}.Susceptible+data{t,N_c}.Infected+data{t,N_c}.Removed)
     end
     % pause
 end
+close(hbar)
+% check
+[N_class S]
