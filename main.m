@@ -21,7 +21,7 @@ CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewyc
 w    = @(u) 1;
 % condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
 % d'età
-U0 = zeros(max(N_class),numel(N_class));
+U0 = nan(max(N_class),numel(N_class));
 for N_c = 1:numel(N_class)
     U0(1:N_class(N_c),N_c) = -10+9.01*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
 end
@@ -29,10 +29,10 @@ end
 % parametri
 beta   = 8.45e-9;
 gamma  = 0.24;
-for t = 1:100
+for t = 1:2
     for N_c = 1:numel(N_class)
         % PRIMO PASSO
-        [f_new_tilda,U,num_bins,edges] = MonteCarlo(U0,beta,gamma,N_class(N_c),N_c,M(:,N_c));
+        [f_new_tilda,U,num_bins,edges] = MonteCarlo(U0,beta,gamma,N_c,M(:,N_c));
         % SECONDO PASSO
         f_new = PassoUpwind(L,num_bins,Tmax,CFL,w,f_new_tilda);
         % AGGIORNAMENTO
@@ -60,5 +60,5 @@ for t = 1:100
         plot(edges(1:end-1),f_new)
         legend(sprintf('Distribution plot of class %d', N_c),'Location','best')
     end
-    pause
+    % pause
 end
