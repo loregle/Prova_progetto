@@ -11,16 +11,16 @@ for j=1:size(U0M,2) % chiedo un ciclo su tutte le classi
     U2      = a(~isnan(a)); clear a;
     U2new   = zeros(numel(U2),1);
     pp      = min(numel(U1),numel(U2));
-    Theta_b = binornd(1,beta,pp,1);
-    Theta_g = binornd(1,gamma,pp,1);
+    Theta_b = binornd(1,beta*M(j),pp,1);
+    Theta_g = binornd(1,gamma*M(j),pp,1);
     for p = 1:pp
         if (U1(p)<=-1) && (abs(U2(p))<=1) % interazione S-I
-            UU1      = ((1-beta)*U1(p) + beta*(U1(p)+2))*M(j); % stati post interazione
+            UU1      = ((1-beta)*U1(p) + beta*(U1(p)+2)); % stati post interazione
             UU2      = U2(p);
             U1new(p) = (1-Theta_b(p)).*U1(p) + Theta_b(p).*(UU1); % aggiornamento temporale degli stati
             U2new(p) = (1-Theta_b(p)).*U2(p) + Theta_b(p).*(UU2);
         elseif (abs(U1(p))<=1) && (abs(U2(p))<=1) % interazione I-I
-            UU1      = ((1-gamma)*U1(p) + gamma*(U1(p)+2))*M(j); % stati post interazione
+            UU1      = ((1-gamma)*U1(p) + gamma*(U1(p)+2)); % stati post interazione
             UU2      = U2(p);
             U1new(p) = (1-Theta_g(p)).*U1(p) + Theta_g(p).*(UU1);
             U2new(p) = (1-Theta_g(p)).*U2(p) + Theta_g(p).*(UU2);

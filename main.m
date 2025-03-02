@@ -3,7 +3,7 @@ format short;
 % numero popolazione per ogni fascia d'età
 N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122];
 
-M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
+M_tilda =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
        4.8 42.4 6.4 5.4 7.5 5.0 1.8 1.7 1.7;
        3.0 6.4 20.7 9.2 7.1 6.3 2.0 0.9 0.9;
        7.1 5.4 9.2 16.9 10.1 6.8 3.4 1.5 1.5;
@@ -12,6 +12,13 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
        2.3 1.8 2.0 3.4 2.6 3.5 7.5 3.2 3.2;
        1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2;
        1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2];
+normam=0;
+for i=1:size(M_tilda,1)
+    for j=1:size(M_tilda,2)
+        normam=normam+M_tilda(i,j);
+    end
+end
+M=(1/normam)*M_tilda;
 
 L    = 100;
 Nu   = 1000;                            % Numero di punti spaziali
@@ -22,11 +29,14 @@ CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewy
 % d'età
 U0 = nan(max(N_class),numel(N_class));
 for N_c = 1:numel(N_class)
-    U0(1:N_class(N_c),N_c) = -L+(L-.99)*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
+    U0(1:N_class(N_c),N_c) = -L+(L-1.01)*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
 end
+%turisti
+U0(1,7)=-0.5;
+U0(2,7)=-0.5;
 
 % parametri
-beta       = 1.6e-8;
+beta       = 8.45e-9;
 gamma      = 0.24;
 w          = 1/14;
 lambda1    = 0.1;
