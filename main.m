@@ -18,7 +18,6 @@ Nu   = 1000;                            % Numero di punti spaziali
 Tmax = 50;                            % Tempo massimo di simulazione
 Tfin = 50;
 CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewy
-w    = 1;
 % condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
 % d'età
 U0 = nan(max(N_class),numel(N_class));
@@ -29,16 +28,20 @@ end
 % parametri
 beta       = 1.6e-8;
 gamma      = 0.24;
-lambda     = 0.1;
-t_lock     = 14;
-class_lock = 6;
+w          = 1/14;
+lambda1    = 0.1;
+lambda2    = 0.5;
+lambda3    = 0.9;
+t_lock     = 30;
 data       = cell(Tfin,1); 
 hbar       = waitbar(0,'','Name','Time iterations');
 flag       = 0;
 for t = 1:Tfin
     if (t>t_lock)&&(~flag)
-        M(1:class_lock,1:class_lock) = M(1:6,1:6).*lambda;
-        flag                         = 1;
+        M(1:3,1:3) = M(1:3,1:3)*lambda1;
+        M(4:6,4:6) = M(4:6,4:6)*lambda2;
+        M(7:9,7:9) = M(7:9,7:9)*lambda3;
+        flag       = 1;
     end
     for N_c = 1:numel(N_class)
         waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d/%d.\n $N_c$ = %d / %d',t,Tfin,N_c,numel(N_class)));
@@ -83,10 +86,13 @@ close(hbar)
 % check infetti
 Tot       = zeros(numel(N_class),1);
 confirmed = zeros(numel(N_class),1);
+removed   = zeros(numel(N_class),1);
 for t=1:numel(N_class)
-    Tot(t) = sum(data{end,t}.Susceptible+data{end,t}.Infected+data{end,t}.Removed);
-    confirmed(t) = sum(data{end,t}.Infected+data{end,t}.Removed);
+    Tot(t)       = sum(data{end,t}.Susceptible+data{end,t}.Infected+data{end,t}.Removed);
+    confirmed(t) = sum(data{end,t}.Infected);
+    removed(t)   = sum(data{end,t}.Removed);
 end
 confirmed  = sum(confirmed);
+removed    = sum(removed);
 err        = abs(N_class-Tot)./N_class*100
 err_weight = sum(err.*N_class)/sum(N_class)
