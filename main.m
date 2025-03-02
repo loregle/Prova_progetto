@@ -4,20 +4,20 @@ format short;
 N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122];
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
-    4.8 42.4 6.4 5.4 7.5 5.0 1.8 1.7 1.7;
-    3.0 6.4 20.7 9.2 7.1 6.3 2.0 0.9 0.9;
-    7.1 5.4 9.2 16.9 10.1 6.8 3.4 1.5 1.5;
-    3.7 7.5 7.1 10.1 13.1 7.4 2.6 2.1 2.1;
-    3.1 5.0 6.3 6.8 7.4 10.4 3.5 1.8 1.8;
-    2.3 1.8 2.0 3.4 2.6 3.5 7.5 3.2 3.2;
-    1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2;
-    1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2];
+       4.8 42.4 6.4 5.4 7.5 5.0 1.8 1.7 1.7;
+       3.0 6.4 20.7 9.2 7.1 6.3 2.0 0.9 0.9;
+       7.1 5.4 9.2 16.9 10.1 6.8 3.4 1.5 1.5;
+       3.7 7.5 7.1 10.1 13.1 7.4 2.6 2.1 2.1;
+       3.1 5.0 6.3 6.8 7.4 10.4 3.5 1.8 1.8;
+       2.3 1.8 2.0 3.4 2.6 3.5 7.5 3.2 3.2;
+       1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2;
+       1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2];
 
 L    = 100;
 Nu   = 1000;                            % Numero di punti spaziali
 Tmax = 50;                            % Tempo massimo di simulazione
 Tfin = 50;
-CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewyc
+CFL  = 0.9;                            % Numero di Courant-Friedrichs-Lewy
 w    = 1;
 % condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
 % d'età
@@ -27,24 +27,25 @@ for N_c = 1:numel(N_class)
 end
 
 % parametri
-beta   = 1.6e-8;
-gamma  = 0.24;
-lambda = 0.1;
-t_lock = 14;
-data   = cell(Tfin,1); 
-hbar   = waitbar(0,'','Name','Time iterations');
-flag   = 0;
+beta       = 1.6e-8;
+gamma      = 0.24;
+lambda     = 0.1;
+t_lock     = 14;
+class_lock = 6;
+data       = cell(Tfin,1); 
+hbar       = waitbar(0,'','Name','Time iterations');
+flag       = 0;
 for t = 1:Tfin
     if (t>t_lock)&&(~flag)
-        M(1:6,1:6) = M(1:6,1:6).*lambda;
-        flag       = 1;
+        M(1:class_lock,1:class_lock) = M(1:6,1:6).*lambda;
+        flag                         = 1;
     end
     for N_c = 1:numel(N_class)
-        waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d.\n $N_c$ = %d / %d',t,N_c,numel(N_class)));
+        waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d/%d.\n $N_c$ = %d / %d',t,Tfin,N_c,numel(N_class)));
         % PRIMO PASSO
         [f_new_tilda,U,num_bins,edges] = MonteCarlo(U0,beta,gamma,N_c,M(:,N_c));close all
         % SECONDO PASSO
-        f_new = PassoUpwind(L,num_bins,Tmax,CFL,w,f_new_tilda);
+        f_new                          = PassoUpwind(L,num_bins,Tmax,CFL,w,f_new_tilda,3);
         % AGGIORNAMENTO
         for c = 1:numel(U)
             if U(c)>-1
@@ -79,11 +80,13 @@ for t = 1:Tfin
 end
 close(hbar)
 % check popolazione conservata
+% check infetti
 Tot       = zeros(numel(N_class),1);
 confirmed = zeros(numel(N_class),1);
 for t=1:numel(N_class)
     Tot(t) = sum(data{end,t}.Susceptible+data{end,t}.Infected+data{end,t}.Removed);
     confirmed(t) = sum(data{end,t}.Infected+data{end,t}.Removed);
 end
-confirmed = sum(confirmed);
-err = abs(N_class-Tot)./N_class*100
+confirmed  = sum(confirmed);
+err        = abs(N_class-Tot)./N_class*100
+err_weight = sum(err.*N_class)/sum(N_class)
