@@ -4,8 +4,23 @@
 
 clearvars; close all;clc
 format short;
-% numero popolazione per ogni fascia d'età
+
+% Popolazione totale per fascia d'età
 N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122];
+
+
+% Inizializzazione degli infetti nelle classi
+U0 = nan(max(N_class), numel(N_class));
+U0 = nan(max(N_class),numel(N_class));
+for N_c = 1:numel(N_class)
+    U0(1:N_class(N_c),N_c) = -1.5+(-1.01+1.5)*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
+end
+
+%Infetti il 29 febbraio
+U0(1:5,2) = 0;  % 5 infetti tra i giovani (fascia 19-50)
+U0(6:20,5) = 0; % 15 infetti tra gli adulti (50-70)
+U0(21:30,8) = 0; % 10 infetti tra gli anziani (70+)
+
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
        4.8 42.4 6.4 5.4 7.5 5.0 1.8 1.7 1.7;
@@ -19,25 +34,13 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
 
 
 L    = 100;
-Tfin = 2;
-% condizione iniziale, matrice in cui ogni colonna rappresenta una fascia
-% d'età
-U0 = nan(max(N_class),numel(N_class));
-for N_c = 1:numel(N_class)
-    U0(1:N_class(N_c),N_c) = -1.5+(-1.01+1.5)*rand(N_class(N_c),1); % ho ridotto il numero di infetti iniziali (da 9.1 a 9.01)
-end
-%turisti
-U0(1,7)=-0.5;
-U0(2,7)=-0.5;
+Tfin = 5;
 
 % parametri
-beta       = 0.25;
-gamma      = 0.24;
+beta       = 0.3;
+gamma      = 0.01;
 w          = 1/14;
-lambda1    = 0.1;
-lambda2    = 0.5;
-lambda3    = 0.9;
-t_lock     = 30;
+t_lock     = 9;         %data iniziale è il 29 febbraio, il lockdown il 9 marzo
 data       = cell(Tfin,1); 
 hbar       = waitbar(0,'','Name','Time iterations');
 flag       = 0;
@@ -49,11 +52,12 @@ R=zeros(Tfin,1);
 
 for t = 1:Tfin
     if (t>t_lock)&&(~flag)
-        M(1:3,1:3) = M(1:3,1:3)*lambda1;
-        M(4:6,4:6) = M(4:6,4:6)*lambda2;
-        M(7:9,7:9) = M(7:9,7:9)*lambda3;
-        flag       = 1;
-    end
+    M(1:3,1:3) = M(1:3,1:3) * 0.3;  % Giovani  %riduzioni fatte in base ad un crierio basato sul lockdown
+    M(4:6,4:6) = M(4:6,4:6) * 0.5;  % Adulti
+    M(7:9,7:9) = M(7:9,7:9) * 0.7;  % Anziani
+    beta=0.075;                     %il lockdown fa calare la possibilità di trasmissione
+    flag = 1;
+end
     for N_c = 1:numel(N_class)
         waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d/%d.\n $N_c$ = %d / %d',t,Tfin,N_c,numel(N_class)));
         
@@ -74,12 +78,9 @@ for t = 1:Tfin
         pp      = min(numel(U1),numel(U2));
         Theta_b = binornd(1,beta,pp,1);
         Theta_g = binornd(1,gamma,pp,1);
-        Theta_c = binornd(1,M_tilda(j)/no,pp,1);
+        Theta_c = binornd(1,max(M_tilda(j)/no,0.25),pp,1);
 
-        if t==1
-            Theta_c(1)=1; %altrimenti l'epidemia non parte
-            Theta_c(2)=1;
-        end
+       
 
         %debug
         disp(['N_c = ', num2str(N_c), ' - Popolazione coinvolta: ', num2str(pp)]);
@@ -130,22 +131,26 @@ for t = 1:Tfin
     U0(1:N_class(N_c),N_c) = U;
     
     %Ricavo S, I, R
-     for i=1:N_class(N_c)
-            if U0(i,N_c)<-1
-                S(t)=S(t)+1;
-
-            elseif abs(U0(i,N_c))<=1
-                I(t)=I(t)+1;
-
-            else
-                R(t)=R(t)+1;
-            end
-      end
-
+     for i = 1:N_class(N_c)
+    if U0(i, N_c) < -1
+        S(t) = S(t) + 1;
+    elseif abs(U0(i, N_c)) <= 1
+        I(t) = I(t) + 1;
+    else
+        R(t) = R(t) + 1;
     end
+end
+
+end
 
    
 
 end
 
 
+% Grafico
+figure;
+plot(1:Tfin, I);
+xlabel('Giorni');
+ylabel('Infetti');
+title('Andamento epidemico');
