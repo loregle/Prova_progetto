@@ -14,17 +14,17 @@ for j=1:size(U0M,2) % chiedo un ciclo su tutte le classi
     pp      = min(numel(U1),numel(U2));
     Theta_b = binornd(1,beta,pp,1);
     Theta_g = binornd(1,gamma,pp,1);
-    Theta_c=binornd(1,M(j)/no,pp,1);
+    %Theta_c=binornd(1,M(j)/no,pp,1);
     for p = 1:pp
 
         Theta_b(p)=Theta_b(p)*(U1(p)<-1)*(-1<U2(p))*(U2(p)<1); %mi assicuro che le interazioni ci siano tra le classi giuste
         Theta_g(p)=Theta_g(p)*(-1<U1(p))*(U1(p)<1)*(-1<U2(p))*(U2(p)<1);
 
 
-        if Theta_c(p)==0
+        %if Theta_c(p)==0
                 %U1new(p)=U1(p);
                 %U2new(p)=U2(p);
-        else
+        %else
             if (U1(p)<=-1) && (abs(U2(p))<=1) % interazione S-I
                 UU1      = (U1(p)+2); % stati post interazione
                 UU2      = U2(p);
