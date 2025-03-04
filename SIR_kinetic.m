@@ -13,7 +13,7 @@ rim_iniziali         = 46;
 L    = 100;
 Tfin = 7;   % Parametri stimati per la settimana dal 28 febbraio al 5 marzo
 
-% Inizializzazione degli infetti nelle classi
+% Inizializzazione dei suscettibili, degli infetti e dei rimossi nelle classi, rispettando i dati reali
 U0 = nan(max(N_class), numel(N_class));
 for i = 1:numel(N_class)
     U0(1:N_class(i),i) = -3 + (-2.01 + 3) * rand(N_class(i),1); % Impedisce valori ≥ -1 e quidi non ci sono infetti iniziali non voluti;
