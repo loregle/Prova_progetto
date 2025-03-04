@@ -16,15 +16,12 @@ Tfin = 7;   %Parametri stimati per la settimana dal 28 febbraio al 5 marzo
 % Inizializzazione degli infetti nelle classi
 U0 = nan(max(N_class), numel(N_class));
 for i = 1:numel(N_class)
-    U0(1:N_class(i),i) = -3 + (-2.01 + 3) * rand(N_class(i),1); % Impedisce valori ≥ -1;
+    U0(1:N_class(i),i) = -3 + (-2.01 + 3) * rand(N_class(i),1); % Impedisce valori ≥ -1 e quidi non ci sono infetti iniziali non voluti;
     U0(1:floor(num_infetti_iniziali*percent_infetti(i)),i) = -.5;
     a  = U0(1:N_class(i),i);
     a  = a(randperm(N_class(i)));
     U0(1:N_class(i),i) = a;
 end
-% U0(1,7) = -.5;
-% U0(2,7) = -.5;
-% U0(1,6) = -.5;
 
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
@@ -42,10 +39,7 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
 beta       = 0.25;
 gamma      = 0.01;
 w          = 1/14;
-%t_lock     = 15;         %data iniziale è il 20 febbraio, il lockdown il 9 marzo (non ancora sicuro)
-data       = cell(Tfin,1);
 hbar       = waitbar(0,'','Name','Time iterations');
-flag       = 0;
 S=zeros(Tfin,1);
 I=zeros(Tfin,1);
 R=zeros(Tfin,1);
@@ -53,17 +47,7 @@ R=zeros(Tfin,1);
 %inizio iterazioni temporali
 
 for t = 1:Tfin
-    % if (t>t_lock)&&(~flag)
-    %     M(1:3,1:3) = M(1:3,1:3) * 0.3;  % Giovani  %riduzioni fatte in base ad un crierio basato sul lockdown
-    %     M(4:6,4:6) = M(4:6,4:6) * 0.5;  % Adulti
-    %     M(7:9,7:9) = M(7:9,7:9) * 0.7;  % Anziani
-    %     beta=0.075;                     %il lockdown fa calare la possibilità di trasmissione
-    %     flag = 1;
-    % end
-    % if t>5
-    %     beta = 0.6;
-    % end
-    for N_c = 1:numel(N_class)
+   for N_c = 1:numel(N_class)
         waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d/%d.\n $N_c$ = %d / %d',t,Tfin,N_c,numel(N_class)));
 
 
@@ -72,14 +56,14 @@ for t = 1:Tfin
 
         a     = U0(:,N_c);
         U1    = a(~isnan(a));clear a; % per farle interagire le divido in due gruppi
-        U1new = -2*ones(numel(U1),1);
+        U1new = -2*ones(numel(U1),1); %-2 è stato scelto per non creare infetti artificisli durante le interazioni.
         M_tilda=M(:,N_c);
         no=norm(M_tilda);
 
         for j=1:size(U0,2) % chiedo un ciclo su tutte le classi
             a       = U0(:,j);
             U2      = a(~isnan(a)); clear a;
-            U2new   = -2*ones(numel(U2),1);
+            U2new   = -2*ones(numel(U2),1);  
             pp      = min(numel(U1),numel(U2));
             Theta_b = binornd(1,beta,pp,1);
             Theta_g = binornd(1,gamma,pp,1);
@@ -127,8 +111,8 @@ for t = 1:Tfin
 
         %Healing Process%
 
-        if U(N_class(N_c))>-1
-            U(N_class(N_c)) = U(N_class(N_c))+w; %la moltiplicazione per dt è implicita in quanto dt=1
+        if abs(U(N_class(N_c)))<1
+            U(N_class(N_c)) = U(N_class(N_c))+w; %la moltiplicazione per dt è implicita in quanto dt=1 e la velocità è stimata in giorni
         end
 
         U0(1:N_class(N_c),N_c) = U;
@@ -154,20 +138,16 @@ confirmed = I(Tfin);
 removed   = R(Tfin);
 
 
-
+data=[888,1128, 1694, 2036, 2502,3089,3858];
 
 % Grafico
 figure;
-plot(1:Tfin, I);
+plot(1:Tfin, I, 1:Tfin, data, 'r');
 xlabel('Giorni');
 ylabel('Infetti');
 title('Andamento epidemico');
 
 
-Popolazione=0;
 
-for N_c=1:numel(N_class)
-    Popolazione=Popolazione +sum(U0(:,N_c));
-end
 
-err=(Popolazione-S(Tfin)-I(Tfin)-R(Tfin))/Popolazione
+
