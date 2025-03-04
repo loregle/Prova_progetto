@@ -1,5 +1,3 @@
-%Prova di unificazione del codice che tiene in considerazione soltanto gli
-%stati microscopici.
 
 clearvars; close all;clc
 format short;
@@ -13,7 +11,7 @@ percent_infetti = [0.12, 0.10, 0.09, 0.09, 0.10, 0.11, 0.12, 0.08, 0.07];  % 0-9
 num_infetti_iniziali = 888;
 
 L    = 100;
-Tfin = 15;
+Tfin = 7;   %Parametri stimati per la settimana dal 28 febbraio al 5 marzo
 
 % Inizializzazione degli infetti nelle classi
 U0 = nan(max(N_class), numel(N_class));
@@ -26,6 +24,7 @@ for i = 1:numel(N_class)
 end
 % U0(1,7) = -.5;
 % U0(2,7) = -.5;
+% U0(1,6) = -.5;
 
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
@@ -41,9 +40,9 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
 
 % parametri
 beta       = 0.25;
-gamma      = 0.001;
-w          = 1/28;
-t_lock     = 10;         %data iniziale è il 29 febbraio, il lockdown il 9 marzo (non ancora sicuro)
+gamma      = 0.01;
+w          = 1/14;
+%t_lock     = 15;         %data iniziale è il 20 febbraio, il lockdown il 9 marzo (non ancora sicuro)
 data       = cell(Tfin,1);
 hbar       = waitbar(0,'','Name','Time iterations');
 flag       = 0;
@@ -61,9 +60,9 @@ for t = 1:Tfin
     %     beta=0.075;                     %il lockdown fa calare la possibilità di trasmissione
     %     flag = 1;
     % end
-    if t>5
-        beta = 0.6;
-    end
+    % if t>5
+    %     beta = 0.6;
+    % end
     for N_c = 1:numel(N_class)
         waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d/%d.\n $N_c$ = %d / %d',t,Tfin,N_c,numel(N_class)));
 
@@ -163,3 +162,12 @@ plot(1:Tfin, I);
 xlabel('Giorni');
 ylabel('Infetti');
 title('Andamento epidemico');
+
+
+Popolazione=0;
+
+for N_c=1:numel(N_class)
+    Popolazione=Popolazione +sum(U0(:,N_c));
+end
+
+err=(Popolazione-S(Tfin)-I(Tfin)-R(Tfin))/Popolazione
