@@ -7,20 +7,25 @@ format short;
 N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122];
 
 % Percentuale di infetti iniziali per fascia d'età
-%percent_infetti = [0.12, 0.10, 0.09, 0.09, 0.10, 0.11, 0.12, 0.08, 0.07];  % 0-9, 10-19, 20-29, ..., 80+
+percent_infetti = [0.12, 0.10, 0.09, 0.09, 0.10, 0.11, 0.12, 0.08, 0.07];  % 0-9, 10-19, 20-29, ..., 80+
 
 % Numero iniziale di infetti
-%num_infetti_iniziali = 1000;
+num_infetti_iniziali = 888;
 
 L    = 100;
-Tfin = 5;
+Tfin = 15;
 
 % Inizializzazione degli infetti nelle classi
 U0 = nan(max(N_class), numel(N_class));
 for i = 1:numel(N_class)
     U0(1:N_class(i),i) = -3 + (-2.01 + 3) * rand(N_class(i),1); % Impedisce valori ≥ -1;
+    U0(1:floor(num_infetti_iniziali*percent_infetti(i)),i) = -.5;
+    a  = U0(1:N_class(i),i);
+    a  = a(randperm(N_class(i)));
+    U0(1:N_class(i),i) = a;
 end
-
+% U0(1,7) = -.5;
+% U0(2,7) = -.5;
 
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
@@ -36,9 +41,9 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
 
 % parametri
 beta       = 0.25;
-gamma      = 0.01;
-w          = 1/14;
-t_lock     = 30;         %data iniziale è il 29 febbraio, il lockdown il 9 marzo (non ancora sicuro)
+gamma      = 0.001;
+w          = 1/28;
+t_lock     = 10;         %data iniziale è il 29 febbraio, il lockdown il 9 marzo (non ancora sicuro)
 data       = cell(Tfin,1);
 hbar       = waitbar(0,'','Name','Time iterations');
 flag       = 0;
@@ -49,12 +54,15 @@ R=zeros(Tfin,1);
 %inizio iterazioni temporali
 
 for t = 1:Tfin
-    if (t>t_lock)&&(~flag)
-        M(1:3,1:3) = M(1:3,1:3) * 0.3;  % Giovani  %riduzioni fatte in base ad un crierio basato sul lockdown
-        M(4:6,4:6) = M(4:6,4:6) * 0.5;  % Adulti
-        M(7:9,7:9) = M(7:9,7:9) * 0.7;  % Anziani
-        beta=0.075;                     %il lockdown fa calare la possibilità di trasmissione
-        flag = 1;
+    % if (t>t_lock)&&(~flag)
+    %     M(1:3,1:3) = M(1:3,1:3) * 0.3;  % Giovani  %riduzioni fatte in base ad un crierio basato sul lockdown
+    %     M(4:6,4:6) = M(4:6,4:6) * 0.5;  % Adulti
+    %     M(7:9,7:9) = M(7:9,7:9) * 0.7;  % Anziani
+    %     beta=0.075;                     %il lockdown fa calare la possibilità di trasmissione
+    %     flag = 1;
+    % end
+    if t>5
+        beta = 0.6;
     end
     for N_c = 1:numel(N_class)
         waitbar(N_c/numel(N_class),hbar,sprintf('Time step: %d/%d.\n $N_c$ = %d / %d',t,Tfin,N_c,numel(N_class)));
@@ -92,13 +100,13 @@ for t = 1:Tfin
                     U2new(p)=U2(p);
                 else
                     if (U1(p)<-1) && (abs(U2(p))<=1) % interazione S-I
-                        UU1      = beta*(U2(p))+(1-beta)*(U1(p)); % stati post interazione
+                        UU1      = U2(p); % stati post interazione
                         UU2      = U2(p);
                         U1new(p) = (1-Theta_b(p)).*U1(p) + Theta_b(p).*(UU1); % aggiornamento temporale degli stati
                         U2new(p) = (1-Theta_b(p)).*U2(p) + Theta_b(p).*(UU2);
 
                     elseif (abs(U1(p))<=1) && (abs(U2(p))<=1) % interazione I-I
-                        UU1      = gamma*(U1(p)+2)+(1-gamma)*U1(p); % stati post interazione
+                        UU1      = (U1(p)+2); % stati post interazione
                         UU2      = U2(p);
                         U1new(p) = (1-Theta_g(p)).*U1(p) + Theta_g(p).*(UU1);
                         U2new(p) = (1-Theta_g(p)).*U2(p) + Theta_g(p).*(UU2);
@@ -108,7 +116,8 @@ for t = 1:Tfin
                     end
                 end
             end
-            U1 = U1new;
+            U1(1:pp)     = U1new(1:pp);
+            U1(pp+1:end) = U1(pp+1:end);
         end
 
         % l'interazione modifica solo la classe i
