@@ -8,18 +8,20 @@ format short;
 N_class = [441148; 5666380; 5962570; 6570438; 8061698; 9619516; 7964818; 6141544; 4543122];
 
 % Percentuale di infetti iniziali per fascia d'età
-percent_infetti = [0.12, 0.10, 0.09, 0.09, 0.10, 0.11, 0.12, 0.08, 0.07];  % 0-9, 10-19, 20-29, ..., 80+
+%percent_infetti = [0.12, 0.10, 0.09, 0.09, 0.10, 0.11, 0.12, 0.08, 0.07];  % 0-9, 10-19, 20-29, ..., 80+
 
 % Numero iniziale di infetti
-num_infetti_iniziali = 1000;
+%num_infetti_iniziali = 1000;
+
+L    = 100;
+Tfin = 5;
 
 % Inizializzazione degli infetti nelle classi
 U0 = nan(max(N_class), numel(N_class));
 for i = 1:numel(N_class)
-    num_infetti = round(num_infetti_iniziali * percent_infetti(i));
-    U0(1:num_infetti, i) = -1+ (0+1) * rand(num_infetti, 1); 
-    U0(num_infetti+1:N_class(i),i)=-3 + (-1.01 + 3) * rand(N_class(i) - num_infetti, 1); % Assegno valori per i suscettibili
+     U0(1:N_class(i),i)=-3 + (-2.01 + 3) * rand(N_class(i),1); % Impedisce valori ≥ -1;
 end
+
 
 
 M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
@@ -33,14 +35,11 @@ M =  [19.2 4.8 3.0 7.1 3.7 3.1 2.3 1.4 1.4;
        1.4 1.7 0.9 1.5 2.1 1.8 3.2 7.2 7.2];
 
 
-L    = 100;
-Tfin = 5;
-
 % parametri
-beta       = 0.3;
+beta       = 0.25;
 gamma      = 0.01;
 w          = 1/14;
-t_lock     = 9;         %data iniziale è il 29 febbraio, il lockdown il 9 marzo
+t_lock     = 30;         %data iniziale è il 29 febbraio, il lockdown il 9 marzo (non ancora sicuro)
 data       = cell(Tfin,1); 
 hbar       = waitbar(0,'','Name','Time iterations');
 flag       = 0;
@@ -69,7 +68,7 @@ for t = 1:Tfin
         U1    = a(~isnan(a));clear a; % per farle interagire le divido in due gruppi
         U1new = zeros(numel(U1),1);
         M_tilda=M(:,N_c);
-        no=max(M_tilda);
+        no=norm(M_tilda);
 
         for j=1:size(U0,2) % chiedo un ciclo su tutte le classi
         a       = U0(:,j);
@@ -78,9 +77,8 @@ for t = 1:Tfin
         pp      = min(numel(U1),numel(U2));
         Theta_b = binornd(1,beta,pp,1);
         Theta_g = binornd(1,gamma,pp,1);
-        Theta_c = binornd(1,max(M_tilda(j)/no,0.25),pp,1);
+        Theta_c = binornd(1,M_tilda(j)/no,pp,1);
 
-       
 
         %debug
         disp(['N_c = ', num2str(N_c), ' - Popolazione coinvolta: ', num2str(pp)]);
@@ -95,13 +93,13 @@ for t = 1:Tfin
                 U2new(p)=U2(p);
             else
                 if (U1(p)<=-1) && (abs(U2(p))<=1) % interazione S-I
-                    UU1      = U2(p); % stati post interazione
+                    UU1      = beta*(U2(p))+(1-beta)*(U1(p)); % stati post interazione
                     UU2      = U2(p);
                     U1new(p) = (1-Theta_b(p)).*U1(p) + Theta_b(p).*(UU1); % aggiornamento temporale degli stati
                     U2new(p) = (1-Theta_b(p)).*U2(p) + Theta_b(p).*(UU2);
                 
                 elseif (abs(U1(p))<=1) && (abs(U2(p))<=1) % interazione I-I
-                    UU1      = U1(p)+2; % stati post interazione
+                    UU1      = gamma*(U1(p)+2)+(1-gamma)*U1(p); % stati post interazione
                     UU2      = U2(p);
                     U1new(p) = (1-Theta_g(p)).*U1(p) + Theta_g(p).*(UU1);
                     U2new(p) = (1-Theta_g(p)).*U2(p) + Theta_g(p).*(UU2);
@@ -111,23 +109,25 @@ for t = 1:Tfin
                 end
             end
         end
-        U = U1new;
+        U1 = U1new;
         end
 
      % l'interazione modifica solo la classe i
+
+    U=U1;
 
     disp(['U (stati aggiornati) min/max: ', num2str(min(U)), ' / ', num2str(max(U))]);
 
     %Healing Process%
 
     if U(N_class(N_c))>-1
-        U(N_class(N_c))=U(N_class(N_c))+w;
+        U(N_class(N_c))=U(N_class(N_c))+w; %la moltiplicazione per dt è implicita in quanto dt=1
     end
 
     U0(1:N_class(N_c),N_c) = U;
     
     %Ricavo S, I, R
-     for i = 1:N_class(N_c)
+    for i = 1:N_class(N_c)
     if U0(i, N_c) < -1
         S(t) = S(t) + 1;
     elseif abs(U0(i, N_c)) <= 1
@@ -139,6 +139,14 @@ for t = 1:Tfin
 
     end
 end
+
+
+
+Tot       = S(Tfin)+I(Tfin)+R(Tfin);
+confirmed = I(Tfin);
+removed   = R(Tfin);
+
+
 
 
 % Grafico
